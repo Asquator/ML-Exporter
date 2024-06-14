@@ -1,0 +1,148 @@
+; multi-segment executable file template.
+
+data segment
+    msg db "esrever ni gnirts"       
+    lenMsg = $-msg         
+    
+    first db "Ziggy played guitar, jamming good with Weird and Gilly"
+    lenF = $-msg
+    
+    str db "LTD Guitars and Basses, el al is a LTD company, LTDLT"  
+    lenStr = $-str
+                                         
+    second db lenF dup(?)
+    
+    promptA db 'Enter formatted string: $'
+    
+    input db lenA ;input here 
+    input_len db 1 dup(?) ; length will be put here
+    A db 101 dup(?) ; input string + terminator
+    lenA = $-A-1 ;max real length of A
+    
+    
+    B db lenA+1 dup(?)
+ends
+
+stack segment
+    dw   128  dup(0)
+ends
+
+code segment
+start:
+; set segment registers:
+    mov ax, data
+    mov ds, ax
+    mov es, ax
+ 
+ 
+;print in reverse    
+    mov si, offset msg
+    add si, lenMsg-1
+    mov cx, lenMsg
+    
+    std
+print:
+    lodsb
+    mov dl, al
+    mov ah, 2
+    int 21h
+    loop print
+
+;copy reverse    
+    mov si, offset first
+    add si, lenF-1
+    mov cx, lenF
+    
+    mov di, offset second
+cprev:
+    std
+    lodsb
+    cld
+    stosb   
+    loop cprev
+
+;string replace
+    
+    mov di, offset str  
+    mov cx, lenStr
+    mov al, 'L'
+scan:
+    repne scasb
+    jne scan_exit
+    cmp cx, 2
+    jb scan_exit
+        
+    cmp [di], 'T'
+    jne scan
+    
+    cmp [di+1], 'D'
+    jne scan 
+    
+    mov [di-1], 'P'
+    mov [di], 'L'
+    mov [di+1], 'C'
+    
+    inc cx
+    loop scan 
+     
+scan_exit:
+ 
+      
+;longest word
+
+    mov dx, offset promptA
+    mov ah, 9h
+    int 21h
+    
+    mov dx, offset input
+    mov ah, 0ah
+    int 21h
+         
+         
+    mov di, offset A    
+    mov al, input_len
+    cbw
+    mov cx, ax
+    xor bx, bx ;counter
+    xor dx, dx ;max counter
+    mov si, di ;longest word index
+
+lw:    
+    mov al, ' '
+    jcxz lwexit
+lw_loop:            
+    inc bx
+    scasb   
+    
+    loopne lw_loop
+    jne lwexit
+    
+    dec bx
+    cmp bx, dx ; counter > max counter?
+    jle lwnext
+    mov dx, bx ; save new max
+    mov si, di
+    dec si
+    sub si, dx ;save new longest word index
+    
+lwnext:    
+    xor bx, bx
+    jmp lw
+    
+lwexit: ; copy max word into B     
+    mov di, offset B
+    mov cx, dx
+    rep movsb
+    
+    mov [di], '$'
+    mov dx, offset B
+    mov ah, 9h
+    int 21h 
+    
+   
+    mov ax, 4c00h ; exit to operating system.
+    int 21h    
+ends
+
+end start ; set entry point and stop the assembler.
+
