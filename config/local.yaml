@@ -1,5 +1,7 @@
 env: "local"
-storage_path: "./storage"
+storage_path: "./models"
+tus:
+  upload_path: "./uploads"
 http_server:
   address: "localhost:8080"
   timeout: 5s
